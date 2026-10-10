@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MT 远程管理</title>
+<style>
+:root{--bg:#0f1216;--panel:#171b21;--panel2:#1e242c;--line:#2b333d;--text:#e6eaf0;--sub:#8b96a5;
+--brand:#f5c244;--brand2:#ffd766;--ok:#3ddc84;--err:#ff6b6b;--warn:#ffa726;--acc:#5aa9ff}
+html[data-theme=light]{--bg:#f4f6f9;--panel:#fff;--panel2:#f0f3f7;--line:#dfe4ea;--text:#1b2027;
+--sub:#6b7684;--brand:#d99b00;--brand2:#e8ab10;--acc:#1a73e8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);display:flex;flex-direction:column;overflow:hidden;
+font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{flex:0 0 auto;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px;
+padding-top:calc(10px + env(safe-area-inset-top))}
+.tt{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:8px;font-size:15px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--sub);flex:0 0 auto}
+.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.bad{background:var(--err)}
+.tt .sp{flex:1}
+.badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+background:var(--panel2);color:var(--sub);font-weight:500;white-space:nowrap}
+.badge.ok{color:var(--ok);border-color:rgba(61,220,132,.45)}
+.badge.warn{color:var(--warn);border-color:rgba(255,167,38,.45)}
+.ib{background:var(--panel2);border:1px solid var(--line);color:var(--sub);width:30px;height:30px;
+border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0}
+.ib:hover{color:var(--text);border-color:var(--brand)}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+input{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;
+padding:7px 10px;font-size:13px;outline:none;font-family:inherit;min-width:0}
+input:focus{border-color:var(--brand)}
+#host{flex:1 1 170px}#port{flex:0 0 80px;width:80px}
+.btn{background:var(--brand);color:#222;border:0;border-radius:9px;padding:8px 15px;font-size:13px;
+font-weight:700;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--brand2)}
+.btn.g{background:var(--panel2);color:var(--text);border:1px solid var(--line);font-weight:500}
+.btn.g:hover{border-color:var(--brand)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{margin-top:7px;font-size:12px;color:var(--sub)}
+.bar{flex:0 0 auto;display:flex;gap:6px;align-items:center;padding:8px 14px;background:var(--panel);
+border-bottom:1px solid var(--line);flex-wrap:wrap}
+.crumb{flex:1 1 auto;display:flex;align-items:center;gap:3px;font-size:12px;color:var(--sub);
+overflow-x:auto;white-space:nowrap;min-width:80px;padding:2px 0;scrollbar-width:none}
+.crumb::-webkit-scrollbar{display:none}
+.crumb span{cursor:pointer;padding:2px 6px;border-radius:6px}
+.crumb span:hover{background:var(--panel2);color:var(--text)}
+.crumb i{opacity:.4;font-style:normal}
+main{flex:1 1 auto;overflow:auto;min-height:0;position:relative;-webkit-overflow-scrolling:touch}
+#alerts{flex:0 0 auto}
+.alert{display:flex;gap:8px;align-items:center;padding:7px 14px;font-size:12px;
+background:rgba(255,167,38,.12);border-bottom:1px solid var(--line);color:var(--warn);flex-wrap:wrap}
+.alert button{background:transparent;border:1px solid currentColor;color:inherit;border-radius:6px;
+padding:2px 8px;font-size:12px;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{position:sticky;top:0;background:var(--panel);text-align:left;font-weight:600;font-size:12px;
+color:var(--sub);padding:8px 12px;border-bottom:1px solid var(--line);z-index:2}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:hover td{background:var(--panel2)}
+.nm{display:flex;align-items:center;gap:9px;min-width:0;cursor:pointer}
+.ic{width:22px;height:22px;text-align:center;flex:0 0 22px;font-size:16px;line-height:22px;
+display:flex;align-items:center;justify-content:center}
+.ic img{width:22px;height:22px;border-radius:4px;object-fit:contain;display:block}
+.nm b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sz,.tm{color:var(--sub);font-size:12px;white-space:nowrap}
+.op{white-space:nowrap;text-align:right}
+.op button{background:var(--panel2);border:1px solid var(--line);color:var(--sub);border-radius:7px;
+padding:4px 9px;font-size:12px;cursor:pointer;margin-left:4px}
+.op button:hover{color:var(--text);border-color:var(--brand)}
+.st{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:13px;text-align:center;padding:24px;color:var(--sub);font-size:13px;background:var(--bg)}
+.st h3{margin:0;color:var(--text);font-size:15px}
+/* 加载圈用 SVG 绘制：矢量圆在任何屏幕密度/缩放/字体设置下都是正圆，
+   不会像 border-radius 那样被 flex 拉伸或非整数 DPR 压成椭圆 */
+.sp{width:18px;height:18px;flex:0 0 auto;display:block;
+animation:sp .8s linear infinite;transform-origin:50% 50%}
+.sp .trk{fill:none;stroke:var(--line);stroke-width:3}
+.sp .arc{fill:none;stroke:var(--brand);stroke-width:3;stroke-linecap:round;
+stroke-dasharray:14 43}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sp{animation-duration:1.6s}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+text-align:left;max-width:600px;width:100%;font-size:12.5px;color:var(--sub)}
+.card ol,.card ul{margin:6px 0 0;padding-left:19px}
+.card li{margin:5px 0}
+.card b{color:var(--text)}
+.card code{background:var(--panel2);padding:1px 6px;border-radius:4px;font-size:11.5px;
+word-break:break-all;user-select:all}
+#files{display:none}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:var(--panel);
+border:1px solid var(--line);padding:9px 16px;border-radius:999px;font-size:13px;opacity:0;transition:.22s;
+pointer-events:none;z-index:99;max-width:88vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;
+z-index:80;padding:16px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;width:100%;
+max-width:480px;max-height:86vh;overflow:auto}
+.modal h3{margin:0 0 6px;font-size:15px}
+.modal label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
+.modal input{width:100%}
+.modal .tip{font-size:12px;color:var(--sub);margin:0 0 6px;line-height:1.6}
+#editor{width:100%;min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+line-height:1.6;resize:vertical;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+border-radius:9px;padding:10px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.codein{font-size:26px;letter-spacing:9px;text-align:center;text-transform:uppercase;font-weight:700}
+/* ---- 预览 ---- */
+.pvmask{position:fixed;inset:0;background:#000;z-index:90;display:flex;flex-direction:column}
+.pvbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#111;
+padding-top:calc(8px + env(safe-area-inset-top));flex-wrap:wrap}
+.pvbar .nm2{flex:1 1 auto;min-width:0;font-size:13px;color:#ddd;overflow:hidden;
+text-overflow:ellipsis;white-space:nowrap}
+.pvbar button{background:#222;border:1px solid #444;color:#ddd;border-radius:7px;padding:5px 10px;
+font-size:12px;cursor:pointer}
+.pvbar button:hover{border-color:var(--brand);color:#fff}
+.pvbar button.on{background:var(--brand);color:#222;border-color:var(--brand);font-weight:700}
+.pvbar button:disabled{opacity:.35;cursor:not-allowed}
+.pvbody{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+overflow:auto;padding:10px;position:relative}
+.pvbody img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.pvbody video,.pvbody audio{max-width:100%;max-height:100%;outline:none}
+.pvbody iframe{width:100%;height:100%;border:0;background:#fff}
+.pvbody pre{margin:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+padding:12px;font-size:12px;line-height:1.6;overflow:auto;max-width:100%;max-height:100%;
+font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;
+text-align:left;align-self:stretch}
+.pvbody .pvempty{color:var(--sub);font-size:13px;text-align:center;padding:20px}
+.pvnote{flex:0 0 auto;display:flex;gap:8px;align-items:flex-start;padding:8px 12px;background:#1a1a1a;
+border-top:1px solid #333;font-size:12px;color:#bbb;flex-wrap:wrap}
+.pvnote .sp2{flex:1 1 auto;min-width:120px}
+.kw{color:#c792ea}.str{color:#c3e88d}.num{color:#f78c6c}.cm{color:#6b7684;font-style:italic}
+.tag{color:#ffcb6b}.attr{color:#82aaff}
+@media(max-width:600px){.tm{display:none}.btn{flex:1 1 auto}td,th{padding:8px 9px}
+.op button{padding:4px 7px;margin-left:3px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tt">
+    <span class="dot" id="dot"></span><span>MT 远程管理</span>
+    <span class="badge" id="mode">检测中…</span>
+    <button class="ib" id="bDiag" title="诊断" style="font-size:15px">⚕</button>
+    <button class="ib" id="bHelp" title="部署/排查">?</button>
+    <button class="ib" id="bTheme" title="主题">◐</button>
+    <button class="ib" id="bForget" title="清除本机配对身份">⎚</button>
+  </div>
+  <div class="row" id="addrRow">
+    <input type="text" id="host" placeholder="手机 IP，如 192.168.1.23">
+    <input type="number" id="port" placeholder="端口" value="8080">
+    <button class="btn" id="bGo">连接</button>
+  </div>
+  <div class="hint" id="hint"></div>
+</header>
+
+<div id="alerts"></div>
+
+<div class="bar" id="bar" style="display:none">
+  <button class="btn g" id="bUp">↑ 上级</button>
+  <button class="btn g" id="bJump" title="直接跳到指定路径">跳转…</button>
+  <button class="btn g" id="bRefresh">刷新</button>
+  <button class="btn g" id="bMkdir">新建文件夹</button>
+  <button class="btn" id="bUpload">上传</button>
+  <input type="file" id="files" multiple>
+  <div class="crumb" id="crumb"></div>
+</div>
+
+<main id="main">
+  <div id="listWrap"></div>
+  <div class="st" id="st" style="display:none"></div>
+</main>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const main=$('main'), dot=$('dot'), crumb=$('crumb'), hint=$('hint');
+const listWrap=()=>$('listWrap');
+const stEl=()=>$('st');
+
+const AUTH_TAG='MT-REMOTE-AUTH-v1';
+const EMPTY_HASH='47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU';
+const MAX_TEXT=5*1024*1024;   // 超过此大小不做文本预览/编辑
+const ICON_CACHE_MAX=150;     // 图标 objectURL 上限，超出回收最旧的
+
+const S={mode:'cross',host:'',port:'8080',path:'/',items:[],
+         identity:null,skew:0,root:'',iconCache:new Map(),view:[]};
+
+/* ============ 基础工具 ============ */
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+const enc=new TextEncoder();
+const b64u=buf=>{const b=new Uint8Array(buf);let s='';
+  for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
+async function sha256B64(data){
+  let d;
+  if(typeof data==='string')d=enc.encode(data);
+  else if(data instanceof Uint8Array)d=data;
+  else if(data instanceof ArrayBuffer)d=new Uint8Array(data);
+  else if(typeof Blob!=='undefined'&&data instanceof Blob)d=new Uint8Array(await data.arrayBuffer());
+  else return EMPTY_HASH;
+  return b64u(await crypto.subtle.digest('SHA-256',d));
+}
+function p1363ToDer(raw){
+  const r=raw.slice(0,32),s=raw.slice(32,64);
+  const trim=b=>{let i=0;while(i<b.length-1&&b[i]===0)i++;return b.slice(i);};
+  const encInt=b=>{let v=trim(b);
+    if(v[0]&0x80){const t=new Uint8Array(v.length+1);t[0]=0;t.set(v,1);v=t;}
+    const o=new Uint8Array(v.length+2);o[0]=0x02;o[1]=v.length;o.set(v,2);return o;};
+  const a=encInt(r),b2=encInt(s);
+  const body=new Uint8Array(a.length+b2.length);body.set(a,0);body.set(b2,a.length);
+  const out=new Uint8Array(body.length+2);out[0]=0x30;out[1]=body.length;out.set(body,2);
+  return out;
+}
+const extOf=n=>{const m=/\.([a-z0-9]+)$/i.exec(String(n||''));return m?m[1].toLowerCase():'';};
+const SPIN='<svg class="sp" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">'+
+  '<circle class="trk" cx="12" cy="12" r="9"/>'+
+  '<circle class="arc" cx="12" cy="12" r="9"/></svg>';
+
+/* ============ 身份 ============ */
+const idKey=()=>'mt_id_'+(S.root||S.host+':'+S.port);
+function loadId(){try{return JSON.parse(localStorage.getItem(idKey())||'null');}catch(e){return null;}}
+function saveId(o){localStorage.setItem(idKey(),JSON.stringify(o));}
+function clearId(){localStorage.removeItem(idKey());S.identity=null;}
+async function newIdentity(){
+  const kp=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  const jwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
+  const raw=new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey));
+  return {jwk,publicKey:{kty:'EC',crv:'P-256',x:b64u(raw.slice(1,33)),y:b64u(raw.slice(33,65))}};
+}
+async function privKey(){
+  return crypto.subtle.importKey('jwk',S.identity.jwk,
+    {name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+}
+
+/* ============ 请求 ============ */
+const apiUrl=tq=>S.mode==='same'?tq:('http://'+S.host+':'+S.port+tq);
+async function call(method,tq,opt){
+  opt=opt||{};
+  const h=Object.assign({},opt.headers||{});
+  let body=opt.body;
+  if(opt.json){h['Content-Type']='application/json; charset=UTF-8';body=JSON.stringify(opt.json);}
+  if(S.identity){
+    const bh=opt.contentHash||await sha256B64(body);
+    const ts=String(Date.now()+S.skew);
+    const nonce=b64u(crypto.getRandomValues(new Uint8Array(16)));
+    const payload=[AUTH_TAG,method.toUpperCase(),tq,ts,nonce,bh].join('\n');
+    const sig=await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},
+      await privKey(),enc.encode(payload));
+    h['X-MT-Auth-Device']=S.identity.deviceId;
+    h['X-MT-Auth-Timestamp']=ts;
+    h['X-MT-Auth-Nonce']=nonce;
+    h['X-MT-Auth-Content-SHA256']=bh;
+    h['X-MT-Auth-Signature']=b64u(p1363ToDer(new Uint8Array(sig)));
+  }
+  const r=await fetch(apiUrl(tq),{method,headers:h,body:body,signal:opt.signal});
+  if(r.status===401&&S.identity) onUnauthorized();
+  return r;
+}
+async function apiJson(method,tq,opt){
+  const r=await call(method,tq,opt);
+  const txt=await r.text();
+  if(!r.ok){let m=txt;try{const j=JSON.parse(txt);m=j.error||j.message||txt;}catch(e){}
+    throw new Error('HTTP '+r.status+' '+String(m).slice(0,180));}
+  try{return JSON.parse(txt);}catch(e){return txt;}
+}
+function onUnauthorized(){
+  clearId();dot.className='dot bad';$('bar').style.display='none';
+  status('<h3>身份已失效</h3><div>手机端可能已解除配对，请重新输入配对码。</div>'+
+    '<div class="row" style="justify-content:center"><button class="btn" id="rePair">重新配对</button></div>');
+  const b=$('rePair');if(b)b.onclick=()=>start(true);
+}
+
+/* ============ 配对 ============ */
+async function pair(code){
+  const id=await newIdentity();
+  const r=await fetch(apiUrl('/api/auth/pair'),{
+    method:'POST',headers:{'Content-Type':'application/json; charset=UTF-8'},
+    body:JSON.stringify({code:String(code).trim(),clientHints:clientHints(),
+      publicKey:id.publicKey,trust:true})});
+  const txt=await r.text();let j={};try{j=JSON.parse(txt);}catch(e){}
+  if(!r.ok)throw new Error(j.error||('配对失败 HTTP '+r.status));
+  if(!j.deviceId)throw new Error('响应缺少 deviceId');
+  S.identity={deviceId:j.deviceId,jwk:id.jwk,trust:true};
+  saveId(S.identity);
+}
+function clientHints(){
+  const ua=navigator.userAgentData;if(!ua)return{};
+  const o={};
+  try{if(ua.brands)o.brands=ua.brands;
+      if(ua.platform)o.platform=ua.platform;
+      if(typeof ua.mobile==='boolean')o.mobile=ua.mobile;}catch(e){}
+  return o;
+}
+function openPair(initial){
+  hideStatus();               // 连接已通，弹配对框前先收起加载圈
+  let busy=false;
+  const m=modal('输入配对码',
+    '<p class="tip">在手机 MT 管理器的「远程管理 → HTTP」页面可以看到配对码，通常几分钟内有效。</p>'+
+    '<input class="codein" id="pc" maxlength="12" placeholder="······" value="'+esc(initial||'')+'">',
+    {ok:'配对',cancel:'取消',onOk:()=>{
+      const inp=document.getElementById('pc');
+      const v=(inp&&inp.value||'').trim();
+      if(!v){toast('请输入配对码');return false;}
+      if(busy)return false;
+      busy=true;
+      pair(v).then(()=>{m.remove();dot.className='dot on';onAuthed();})
+             .catch(e=>{busy=false;toast('配对失败：'+e.message);});
+      return false;
+    }});
+  const inp=m.q('#pc');
+  setTimeout(()=>{if(inp)inp.focus();},80);
+  if(inp)inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){const b=m.querySelector('[data-x="ok"]');if(b)b.click();}});
+  return m;
+}
+
+/* ============ 启动 ============ */
+async function start(forcePair){
+  dot.className='dot';$('bar').style.display='none';
+  showSpinner('正在连接…');
+  try{
+    const r=await call('GET','/api/auth/status');
+    if(r.ok){try{const j=await r.json();
+      if(j&&j.serverTime)S.skew=Number(j.serverTime)-Date.now();}catch(e){}}
+  }catch(e){
+    dot.className='dot bad';
+    status('<h3>连不上手机</h3>'+
+      (S.mode==='same'?'<div>无法访问本机 MT 服务，请确认远程管理已启动。</div>'
+                      :'<div>无法访问 '+esc(S.host)+':'+esc(S.port)+'</div>')+failCard(e.message));
+    return;
+  }
+  S.identity=loadId();
+  if(forcePair||!S.identity){openPair();return;}
+  try{
+    const r=await call('GET','/api/auth/session');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    dot.className='dot on';onAuthed();
+  }catch(e){clearId();openPair();}
+}
+function onAuthed(){$('bar').style.display='flex';toast('已连接');load(S.path||'/');}
+async function connectFromInput(){
+  S.host=$('host').value.trim().replace(/^https?:\/\//i,'').replace(/\/+$/,'');
+  S.port=$('port').value.trim()||'8080';
+  if(!S.host){toast('请填写手机 IP');return;}
+  saveHist();start();
+}
+
+/* ============ 模式检测 ============ */
+function setMode(mode,label,cls){
+  S.mode=mode;
+  const b=$('mode');b.textContent=label;b.className='badge '+(cls||'');
+  $('addrRow').style.display=mode==='same'?'none':'flex';
+}
+async function detect(){
+  const o=location.origin;
+  const isHttp=/^https?:$/.test(location.protocol);
+  if(isHttp){
+    try{
+      const r=await fetch('/api/auth/status',{cache:'no-store'});
+      if(r.ok){
+        const j=await r.json();
+        if(j&&typeof j==='object'&&
+           ('pairingExpiresInMs' in j||'serverTime' in j||'ok' in j||'version' in j)){
+          S.root=o;setMode('same','同源直连','ok');start();return;
+        }
+      }
+    }catch(e){}
+  }
+  const local=/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  setMode('cross',local?'本机页面':'本地文件','warn');
+  renderHist();
+  status('<h3>连接你的手机</h3>'+
+    '<div class="card"><b>步骤</b><ol>'+
+    '<li>手机 MT 管理器 → 侧边栏 <b>远程管理</b> → 切到 <b>HTTP</b> → 点 <b>启动</b></li>'+
+    '<li>把页面显示的 IP 和端口填进上方，点 <b>连接</b></li>'+
+    '<li>弹出配对码框时填入 MT 页面上的配对码（本机只配一次）</li>'+
+    '<li>用完记得回 MT 点「停止」</li></ol></div>');
+}
+
+/* ============ 列表解析 ============ */
+const target=path=>'/api/files?path='+encodeURIComponent(path);
+function pickList(d){
+  if(Array.isArray(d))return d;
+  if(!d||typeof d!=='object')return [];
+  for(const k of ['items','files','list','data','entries','result','children','content'])
+    if(Array.isArray(d[k]))return d[k];
+  for(const k of ['data','result','response']){
+    const v=d[k];
+    if(v&&typeof v==='object')
+      for(const k2 of ['items','files','list','entries','children'])
+        if(Array.isArray(v[k2]))return v[k2];
+  }
+  for(const k in d)if(Array.isArray(d[k]))return d[k];
+  return [];
+}
+/* ============ 目录/文件自动识别 ============
+   依据 MT 前端源码（打包产物）还原的真实字段：
+     · 列表项含 isFile 布尔 —— 权威依据
+     · 列表项含 typeIcon，取值只有 "folder" / "file" 两种 —— 第二权威依据
+   两者都取不到时，才用启发式规则兜底（名称、大小、扩展名等），
+   并按置信度打分，绝不依赖用户手动切换。                        */
+
+let DIR_HINT='';
+const ROOT_DIRS=['apex','bin','data','etc','mnt','proc','sys','system','vendor','dev','sbin','sdcard','storage'];
+
+function isDirOf(o){
+  // ── 1. isFile 布尔（MT 真实字段，最可靠）
+  if(typeof o.isFile==='boolean'){
+    DIR_HINT='isFile='+o.isFile;
+    return !o.isFile;
+  }
+  // ── 2. typeIcon：只有 folder / file 两种取值（MT 真实字段）
+  const ti=o.typeIcon!=null?String(o.typeIcon).trim().toLowerCase():'';
+  if(ti){
+    DIR_HINT='typeIcon='+ti;
+    if(ti==='folder')return true;
+    if(ti==='file')return false;
+    if(ti.indexOf('folder')>=0)return true;
+    if(ti.indexOf('file')>=0)return false;
+  }
+  // ── 3. isDirectory / isDir 等布尔（兼容其它实现）
+  for(const k of ['isDirectory','isDir','directory','folder','isFolder','is_directory']){
+    if(o[k]!=null&&typeof o[k]==='boolean'){
+      DIR_HINT='布尔字段 '+k+'='+o[k];
+      return !!o[k];
+    }
+  }
+  // ── 4. type / kind 字符串或数字
+  const t=(o.type!=null)?o.type:(o.kind!=null?o.kind:(o.fileType!=null?o.fileType:null));
+  if(t!=null){
+    const s=String(t).trim().toLowerCase();
+    DIR_HINT='type='+JSON.stringify(t);
+    if(s==='folder'||s==='directory'||s==='dir'||s==='d'||s==='catalog')return true;
+    if(s==='file'||s==='f'||s==='regular'||s==='regularfile'||s==='document')return false;
+    if(/^\d+$/.test(s))return Number(s)===2;      // 2=目录，1/0=文件
+  }
+  // ── 5. unix mode 位
+  const m=o.mode!=null?o.mode:(o.permissions!=null?o.permissions:null);
+  if(typeof m==='number'&&m>0){DIR_HINT='mode='+m;return (m&0o170000)===0o040000;}
+  if(typeof m==='string'&&/^[d-]/.test(m)){DIR_HINT='mode 字符串 '+m;return m[0]==='d';}
+  // ── 6. 名称以 / 结尾
+  const nm=String(o.name??o.path??'');
+  if(nm.endsWith('/')){DIR_HINT='名称以 / 结尾';return true;}
+  DIR_HINT='无明确字段';
+  return null;                                   // 交给启发式
+}
+
+/* 启发式：仅在服务端未提供任何类型字段时启用，返回 0~1 置信度 */
+function guessDirScore(o){
+  const name=String(o.name??'').replace(/\/+$/,'');
+  const path=String(o.path??'');
+  const size=Number(o.size??o.length??-1);
+  let s=0.5;
+  // 无扩展名 → 偏目录
+  const dot=name.lastIndexOf('.');
+  const hasExt=dot>0&&dot<name.length-1;
+  if(!hasExt)s+=0.25; else s-=0.15;
+  // 已知 Android 根目录名 → 强目录
+  if(ROOT_DIRS.indexOf(name)>=0)s+=0.45;
+  // size 是强信号：目录通常报 0，有实际字节数的一定是文件
+  if(size>0)s-=0.4;
+  else if(size===0)s+=0.15;
+  else if(size===-1)s+=0.3;
+  // 路径以 / 结尾
+  if(/\/$/.test(path))s+=0.3;
+  // mime 为目录型
+  if(typeof o.mime==='string'&&/directory/i.test(o.mime))s+=0.5;
+  return Math.max(0,Math.min(1,s));
+}
+
+/* 统一判定：先取显式字段，失败则启发式 */
+function decideDir(o){
+  const r=isDirOf(o);
+  if(r!==null)return {isDir:r,confident:true};
+  const score=guessDirScore(o);
+  return {isDir:score>=0.5,confident:score>=0.7||score<=0.3,hint:DIR_HINT};
+}
+function extract(d){
+  const arr=pickList(d);
+  return arr.map(o=>{
+    if(!o||typeof o!=='object')return null;
+    let raw='';
+    for(const k of ['path','fullPath','absolutePath','uri'])
+      if(o[k]!=null&&String(o[k])!==''){raw=String(o[k]);break;}
+    let name=o.name!=null?o.name:(o.fileName!=null?o.fileName:null);
+    if(name==null)name=String(raw).split('/').filter(Boolean).pop();
+    name=String(name).replace(/\/+$/,'');
+    if(!name)return null;
+    const d=decideDir(o);
+    return {name:name,raw:raw||name,isDir:!!d.isDir,confident:!!d.confident,
+      size:Number(o.size||o.length||0)||0,
+      time:Number(o.time||o.mtime||o.lastModified||o.modified||0)||0,
+      mime:(typeof o.mime==='string')?o.mime:''};
+  }).filter(Boolean);
+}
+
+/* ============ 文件类型 → 预览方式 ============ */
+const T={
+  img:['png','jpg','jpeg','gif','webp','bmp','svg','ico','avif','heic','heif'],
+  video:['mp4','mkv','webm','mov','m4v','3gp','avi'],
+  audio:['mp3','wav','flac','m4a','ogg','aac','opus'],
+  pdf:['pdf'],
+  html:['html','htm','xhtml','mhtml'],
+  office:['doc','docx','xls','xlsx','ppt','pptx','wps','rtf','odt','ods','odp'],
+  apk:['apk','apks','xapk'],
+  archive:['zip','rar','7z','tar','gz','bz2','xz','zipx'],
+};
+const TEXT_EXT=['txt','md','log','json','xml','html','htm','ini','conf','prop','properties',
+  'sh','bash','py','js','mjs','ts','java','kt','smali','yml','yaml','csv','css','sql',
+  'gradle','c','h','cpp','hpp','cs','go','rb','php','pl','lua','rs','swift','vue','jsx','tsx',
+  'bat','cmd','ps1','awk','sed','diff','patch','toml','cfg','list','gitignore','hosts'];
+function kindOf(name,isDir){
+  if(isDir)return 'dir';
+  const e=extOf(name);
+  for(const k in T) if(T[k].indexOf(e)>=0) return k;
+  if(TEXT_EXT.indexOf(e)>=0) return 'text';
+  if(!e) return 'text';           // 无扩展名（如 adb_keys、bin 下的脚本）当文本尝试
+  return 'other';
+}
+const ICON={
+  dir:'📁',img:'🖼',video:'🎬',audio:'🎵',pdf:'📕',html:'🌐',
+  office:'📘',apk:'📦',archive:'🗜',text:'📄',other:'📄'
+};
+function iconOf(it){
+  if(it.isDir)return '📁';
+  const k=kindOf(it.name,false);
+  return ICON[k]||'📄';
+}
+
+/* ============ 列表渲染 ============ */
+async function load(p){
+  S.path=normPath(p||'/');hideStatus();showSpinner('正在读取…');
+  try{
+    const d=await apiJson('GET',target(S.path));
+    S.items=extract(d);render();
+    if(!S.items.length)status('<h3>空目录</h3><div>这里没有可显示的内容</div>');
+  }catch(e){
+    listWrap().innerHTML='';
+    status('<h3>读取失败</h3><div>'+esc(e.message)+'</div>'+
+      '<div class="card">路径：<code>'+esc(S.path)+'</code></div>');
+  }
+}
+const fmtSize=n=>{if(!n)return '—';const u=['B','KB','MB','GB','TB'];let i=0;n=+n;
+  while(n>=1024&&i<u.length-1){n/=1024;i++;}
+  return (i===0?n:n.toFixed(i===1?0:1))+' '+u[i];};
+function fmtTime(t){if(!t)return '—';const ms=t<1e12?t*1000:t;const d=new Date(ms);
+  if(isNaN(d))return '—';const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
+
+function render(){
+  const items=S.items.slice().sort((a,b)=>{
+    if(a.isDir!==b.isDir)return a.isDir?-1:1;
+    return a.name.localeCompare(b.name,'zh');
+  });
+  S.view=items;
+  let h='<table><thead><tr><th>名称</th><th style="width:92px">大小</th>'+
+    '<th class="tm" style="width:132px">修改时间</th><th style="width:1%"></th></tr></thead><tbody>';
+  if(S.path!=='/')h+='<tr data-up="1"><td class="nm"><span class="ic">↩</span><b>..</b></td>'+
+    '<td colspan="3"></td></tr>';
+  items.forEach((it,i)=>{
+    const full=fullPath(it);
+    const k=kindOf(it.name,it.isDir);
+    h+='<tr data-i="'+i+'" data-p="'+esc(full)+'" data-dir="'+(it.isDir?1:0)+'" '+
+      'data-name="'+esc(it.name)+'" data-kind="'+k+'">'+
+      '<td class="nm"><span class="ic">'+iconOf(it)+'</span><b>'+esc(it.name)+'</b></td>'+
+      '<td class="sz">'+(it.isDir?'—':fmtSize(it.size))+'</td>'+
+      '<td class="tm">'+fmtTime(it.time)+'</td><td class="op">'+
+      (it.isDir?'<button data-a="open">打开</button>'
+        :'<button data-a="view">查看</button><button data-a="dl">下载</button>')+
+      '<button data-a="ren">重命名</button>'+
+      '<button data-a="del">删除</button></td></tr>';
+  });
+  h+='</tbody></table>';
+  const wrap=listWrap();
+  wrap.innerHTML=h;
+  hideStatus();
+  bindRows(wrap);
+  const up=wrap.querySelector('tr[data-up]');
+  if(up)up.onclick=()=>load(S.path.replace(/\/[^/]*$/,'')||'/');
+  renderCrumb();
+  checkTypeSanity(items);
+  loadIcons();
+}
+function fullPath(it){
+  if(it.raw&&(it.raw.startsWith('/')||it.raw.length>it.name.length))return it.raw;
+  return (S.path==='/'?'':S.path)+'/'+it.name;
+}
+function bindRows(wrap){
+  wrap.querySelectorAll('tr[data-i]').forEach(tr=>{
+    tr.onclick=e=>{
+      if(e.target.closest('button'))return;
+      const i=+tr.dataset.i,it=S.view[i];
+      if(!it)return;
+      it.isDir?load(fullPath(it)):openPreview(i);
+    };
+    tr.querySelectorAll('button').forEach(b=>{b.onclick=e=>{e.stopPropagation();
+      const i=+tr.dataset.i,it=S.view[i];if(!it)return;
+      const p=fullPath(it),a=b.dataset.a;
+      if(a==='open')load(p);
+      else if(a==='view')openPreview(i);
+      else if(a==='dl')download(p,it.name);
+      else if(a==='ren')rename(p,it.name);
+      else if(a==='del')remove(p,it.name,it.isDir);};});
+  });
+}
+/* 仅在「服务端未提供任何类型字段」导致靠猜时才提示，
+   且只引导去诊断，不再让用户手动切换。 */
+function checkTypeSanity(items){
+  const box=$('alerts');box.innerHTML='';
+  if(!items.length)return;
+  if(sessionStorage.getItem('mt_noTypeWarn')==='1')return;
+  const unsure=items.filter(x=>!x.confident);
+  if(!unsure.length)return;                    // 全部有明确字段 → 不打扰
+  const el=document.createElement('div');
+  el.className='alert';
+  const sp=document.createElement('span');
+  sp.textContent='⚠ 服务端未返回类型字段，'+unsure.length+'/'+items.length+
+    ' 项靠名称推断，可能不准。点「查字段」看原始返回。';
+  el.appendChild(sp);
+  const b2=document.createElement('button');
+  b2.textContent='查字段';b2.onclick=()=>runDiag();
+  const b3=document.createElement('button');
+  b3.textContent='不再提示';
+  b3.onclick=()=>{sessionStorage.setItem('mt_noTypeWarn','1');box.innerHTML='';};
+  el.appendChild(b2);el.appendChild(b3);
+  box.appendChild(el);
+}
+
+/* 用 MT 自带的 file-icon 接口加载真实图标（apk / 图片缩略图） */
+async function loadIcons(){
+  const rows=[...listWrap().querySelectorAll('tr[data-i]')];
+  const todo=rows.filter(tr=>{
+    const it=S.view[+tr.dataset.i];
+    if(!it||it.isDir)return false;
+    const k=tr.dataset.kind;
+    return (k==='apk'||k==='img')&&!S.iconCache.has(fullPath(it));
+  });
+  let cur=0;
+  const worker=async()=>{
+    while(cur<todo.length){
+      const tr=todo[cur++];
+      const it=S.view[+tr.dataset.i];
+      if(!it)continue;
+      const p=fullPath(it);
+      try{
+        const r=await call('GET','/api/file-icon?path='+encodeURIComponent(p));
+        if(r.status===204||r.status===404||!r.ok)continue;
+        const blob=await r.blob();
+        const u=URL.createObjectURL(blob);
+        if(S.iconCache.size>ICON_CACHE_MAX){       // 防止 objectURL 无限泄漏
+          const oldest=S.iconCache.keys().next().value;
+          try{URL.revokeObjectURL(S.iconCache.get(oldest));}catch(e){}
+          S.iconCache.delete(oldest);
+        }
+        S.iconCache.set(p,u);
+        const ic=tr.querySelector('.ic');
+        if(ic&&ic.isConnected){ic.innerHTML='<img alt="" src="'+u+'">';}
+      }catch(e){}
+    }
+  };
+  await Promise.all([worker(),worker(),worker(),worker()]);
+}
+
+/* ============ 预警与状态 ============ */
+function status(html){const s=stEl();if(!s)return;s.innerHTML=html;s.style.display='flex';}
+function hideStatus(){stopSpinner();const s=stEl();if(s){s.style.display='none';s.innerHTML='';}}
+let SP_T=null;
+function showSpinner(t){
+  status('<div>'+SPIN+'</div><div>'+esc(t||'')+'</div>');
+  clearTimeout(SP_T);
+  SP_T=setTimeout(()=>{                     // 兜底：卡住时不会永远转
+    const s=stEl();
+    if(s&&s.style.display!=='none'&&s.querySelector('.sp')){
+      s.innerHTML='<h3>操作超时</h3><div>等待时间过长，请重试或检查手机上的远程管理是否仍在运行。</div>'+
+        '<div class="row" style="justify-content:center"><button class="btn g" id="spRetry">刷新</button></div>';
+      const b=$('spRetry');if(b)b.onclick=()=>load(S.path);
+    }
+  },30000);
+}
+function stopSpinner(){clearTimeout(SP_T);SP_T=null;}
+
+/* ============ 下载 ============ */
+function openUrl(url){
+  const a=document.createElement('a');
+  a.href=url;a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);a.click();a.remove();
+}
+function saveBlobObject(blob,name){
+  const u=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=u;a.download=name||'download';a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),60000);
+}
+async function saveBlob(url,opt,name){
+  const r=await call('GET',url,opt);
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  saveBlobObject(await r.blob(),name);
+}
+/* 已知大小时返回字节数，用于决定下载策略 */
+function sizeOf(p){
+  const n=p.split('/').filter(Boolean).pop()||'';
+  const it=S.items.find(x=>x.name===n);
+  return it?it.size:0;
+}
+async function getTicket(p,disposition){
+  const t=await apiJson('POST','/api/auth/content-ticket',{json:{path:p,disposition:disposition}});
+  const tk=t&&(t.ticket||t.token||t.value||t.ticketId);
+  if(!tk)throw new Error('票据响应中没有 ticket 字段：'+JSON.stringify(t).slice(0,160));
+  return tk;
+}
+/* 判断"下载失败"是否其实因为它是目录。
+   注意：必须要求列表非空——对文件请求 /api/files 通常返回空或报错，
+   若只判断"请求成功"会把普通文件误当成目录，从而错误跳转。 */
+async function maybeDir(p){
+  try{
+    const d=await apiJson('GET',target(p));
+    const arr=pickList(d);
+    return Array.isArray(arr)&&arr.length>0;
+  }catch(e){return false;}
+}
+/* 下载策略（按可靠性排序）：
+   1) 票据 + 直接 fetch → 存为文件。票据 URL 不带自定义头，跨域也稳，
+      且不会像 window.open 那样被手机浏览器当弹窗拦截（此前会静默失败）。
+   2) 签名请求取字节 → 存为文件。
+   3) 大文件（>60MB）改用窗口跳转，避免整文件进内存。
+   4) 全部失败且目标其实是目录 → 直接进入。                         */
+async function download(p,name){
+  toast('正在下载…');
+  const big=sizeOf(p)>60*1024*1024;
+  let lastErr='';
+  try{
+    const tk=await getTicket(p,'attachment');
+    const url=apiUrl('/api/file-content?path='+encodeURIComponent(p)+
+      '&disposition=attachment&ticket='+encodeURIComponent(tk));
+    if(big){ openUrl(url); toast('已开始下载（大文件）'); return; }
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    saveBlobObject(await r.blob(),name);
+    toast('已下载 '+name);
+    return;
+  }catch(e1){
+    lastErr=String(e1.message);
+    try{
+      if(!big){
+        await saveBlob('/api/file-content?path='+encodeURIComponent(p)+'&disposition=attachment',{},name);
+        toast('已下载 '+name);return;
+      }
+    }catch(e2){ lastErr=String(e2.message); }
+    try{
+      const tk2=await getTicket(p,'attachment');
+      openUrl(apiUrl('/api/file-content?path='+encodeURIComponent(p)+
+        '&disposition=attachment&ticket='+encodeURIComponent(tk2)));
+      toast('已在新窗口开始下载');return;
+    }catch(e3){}
+    if(/40[134]/.test(lastErr)&&await maybeDir(p)){
+      toast('它是目录，已为你打开');load(p);return;
+    }
+    toast('下载失败：'+lastErr);
+    runDiag(p);
+  }
+}
+
+/* ============ 预览 ============ */
+/* 预览必须走 ticket URL：img/iframe/video 无法携带自定义请求头。
+   取不到票据时回退为 fetch blob + objectURL。 */
+async function previewSrc(p,disposition){
+  disposition=disposition||'inline';
+  try{
+    const tk=await getTicket(p,disposition);
+    return {url:apiUrl('/api/file-content?path='+encodeURIComponent(p)+
+      '&disposition='+disposition+'&ticket='+encodeURIComponent(tk)),revoke:null};
+  }catch(e){
+    const r=await call('GET','/api/file-content?path='+encodeURIComponent(p)+
+      '&disposition='+disposition);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const blob=await r.blob();
+    const u=URL.createObjectURL(blob);
+    return {url:u,revoke:()=>URL.revokeObjectURL(u)};
+  }
+}
+/* 取文件文本内容（用于 HTML 的 srcdoc 渲染）。
+   优先票据 URL，失败则回退签名请求。 */
+async function fetchText(p){
+  try{
+    const tk=await getTicket(p,'inline');
+    const r=await fetch(apiUrl('/api/file-content?path='+encodeURIComponent(p)+
+      '&disposition=inline&ticket='+encodeURIComponent(tk)));
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return await r.text();
+  }catch(e){
+    const r=await call('GET','/api/file-content?path='+encodeURIComponent(p)+'&disposition=inline');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return await r.text();
+  }
+}
+let PV={idx:-1,el:null,revoke:null,scale:1,mode:'auto'};
+function closePreview(){
+  if(PV.revoke){try{PV.revoke();}catch(e){}}
+  document.removeEventListener('keydown',pvKey);
+  if(PV.el)PV.el.remove();
+  PV={idx:-1,el:null,revoke:null,scale:1,mode:'auto'};
+}
+async function openPreview(i){
+  const it=S.view[i];if(!it)return;
+  if(it.isDir){load(fullPath(it));return;}
+  PV.idx=i;
+  const name=it.name,p=fullPath(it);
+  const k=kindOf(name,false);
+  const el=document.createElement('div');
+  el.className='pvmask';
+  el.innerHTML=
+    '<div class="pvbar">'+
+      '<button data-p="prev">‹ 上一个</button><button data-p="next">下一个 ›</button>'+
+      '<span class="nm2">'+esc(name)+'</span>'+
+      (k==='html'?'<button data-p="mode" id="pvmode">源码</button>':'')+
+      (k==='img'?'<button data-p="zin">＋</button><button data-p="zout">－</button>':'')+
+      '<button data-p="edit">编辑</button>'+
+      '<button data-p="dl">下载</button>'+
+      '<button data-p="close">关闭 ✕</button>'+
+    '</div>'+
+    '<div class="pvbody" id="pvbody"><div class="pvempty">'+SPIN+'</div></div>'+
+    '<div class="pvnote" id="pvnote"><span class="sp2"></span></div>';
+  document.body.appendChild(el);
+  PV.el=el;
+  el.querySelector('.pvbar').onclick=e=>{
+    const b=e.target.closest('button');if(!b)return;
+    const a=b.dataset.p;
+    if(a==='close')closePreview();
+    else if(a==='prev')step(-1);
+    else if(a==='next')step(1);
+    else if(a==='dl')download(p,name);
+    else if(a==='edit'){closePreview();edit(p,name);}
+    else if(a==='zin'){PV.scale=Math.min(5,PV.scale*1.25);applyScale();}
+    else if(a==='zout'){PV.scale=Math.max(.2,PV.scale/1.25);applyScale();}
+    else if(a==='mode'){
+      // auto / render 都算「渲染态」，点一次切到源码；源码态再点回渲染
+      PV.mode=(PV.mode==='src')?'render':'src';
+      b.textContent=(PV.mode==='src'?'渲染':'源码');
+      if(PV.revoke){try{PV.revoke();}catch(x){}}
+      PV.revoke=null;renderPreview();}
+  };
+  document.addEventListener('keydown',pvKey);
+  renderPreview();
+}
+function pvKey(e){
+  if(!PV.el)return;
+  if(e.key==='Escape')closePreview();
+  else if(e.key==='ArrowLeft')step(-1);
+  else if(e.key==='ArrowRight')step(1);
+}
+function step(d){
+  const files=S.view.map((x,i)=>({x,i})).filter(o=>!o.x.isDir);
+  if(!files.length)return;
+  let pos=files.findIndex(o=>o.i===PV.idx);
+  if(pos<0)pos=0;
+  const nxt=files[(pos+d+files.length)%files.length];
+  if(PV.revoke){try{PV.revoke();}catch(e){}}
+  PV.revoke=null;PV.scale=1;PV.mode='auto';
+  PV.idx=nxt.i;
+  PV.el.querySelector('.nm2').textContent=nxt.x.name;
+  renderPreview();
+}
+function applyScale(){
+  const img=PV.el&&PV.el.querySelector('#pvbody img');
+  if(img)img.style.transform='scale('+PV.scale+')';
+}
+function note(html){const n=PV.el&&PV.el.querySelector('#pvnote .sp2');if(n)n.innerHTML=html;}
+
+async function renderPreview(){
+  const it=S.view[PV.idx];if(!it||!PV.el)return;
+  const name=it.name,p=fullPath(it),k=kindOf(name,false);
+  const body=PV.el.querySelector('#pvbody');
+  body.innerHTML='<div class="pvempty">'+SPIN+'</div>';
+  note('类型：'+k+(it.size?' · '+fmtSize(it.size):''));
+
+  const fail=(msg)=>{
+    body.innerHTML='<div class="pvempty">'+esc(msg)+'</div>';
+  };
+
+  try{
+    if(k==='img'){
+      const s=await previewSrc(p,'inline');
+      PV.revoke=s.revoke;
+      body.innerHTML='';
+      const im=document.createElement('img');
+      im.src=s.url;im.alt=name;
+      im.onerror=()=>fail('图片加载失败，可尝试下载后查看');
+      body.appendChild(im);
+      note('图片 · '+(it.size?fmtSize(it.size):'')+' · ＋－ 可缩放');
+      return;
+    }
+    if(k==='video'||k==='audio'){
+      const s=await previewSrc(p,'inline');
+      PV.revoke=s.revoke;
+      const tag=k==='video'?'video':'audio';
+      body.innerHTML='<'+tag+' src="'+esc(s.url)+'" controls autoplay '+
+        (k==='video'?'style="max-width:100%;max-height:100%"':'')+'></'+tag+'>';
+      note((k==='video'?'视频':'音频')+' · 直接播放');
+      return;
+    }
+    if(k==='pdf'){
+      const s=await previewSrc(p,'inline');
+      PV.revoke=s.revoke;
+      body.innerHTML='<iframe src="'+esc(s.url)+'" title="'+esc(name)+'"></iframe>';
+      note('PDF · 由浏览器内置阅读器渲染；若空白请下载后用其它应用打开');
+      return;
+    }
+    if(k==='html'){
+      if(PV.mode==='src')return await showText(p,name,body,'html');
+      /* MT 的 file-content 响应带 CSP（frame-ancestors），直接给 iframe 的 src
+         会被浏览器拒绝：net::ERR_BLOCKED_BY_CSP。服务端改不了，所以换成
+         先把字节取回来、再用 srcdoc 渲染 —— srcdoc 不是网络请求，不受该 CSP 约束。 */
+      try{
+        const html=await fetchText(p);
+        const f=document.createElement('iframe');
+        f.setAttribute('sandbox','allow-scripts allow-same-origin allow-modals allow-popups');
+        f.setAttribute('title',name);
+        body.innerHTML='';
+        f.srcdoc=html;
+        body.appendChild(f);
+        note('HTML · 已渲染（页面内引用的相对资源可能无法加载）');
+        return;
+      }catch(e){
+        await showText(p,name,body,'html');
+        note('HTML · 无法渲染（'+e.message+'），已改为显示源码');
+        const btn=PV.el&&PV.el.querySelector('#pvmode');
+        if(btn){btn.textContent='渲染';btn.disabled=true;}
+        return;
+      }
+    }
+    if(k==='text'||k==='office'||k==='archive'||k==='apk'||k==='other'){
+      if(k==='text')return await showText(p,name,body,k);
+      // 非文本：给出说明 + 快捷操作
+      let msg='';
+      if(k==='office')msg='Office 文档（'+extOf(name).toUpperCase()+
+        '）浏览器无法直接渲染，请下载后用 WPS / Office 打开。';
+      else if(k==='apk')msg='APK 是安装包，无法预览内容，可下载安装或查看图标。';
+      else if(k==='archive')msg='压缩包无法直接预览，可下载后解压。';
+      else msg='暂不支持直接预览该类型，可尝试以文本方式查看。';
+      body.innerHTML='<div class="pvempty">'+esc(msg)+'</div>';
+      const n=PV.el.querySelector('#pvnote');
+      const b=document.createElement('button');
+      b.textContent='下载';b.onclick=()=>download(p,name);
+      n.appendChild(b);
+      if(k!=='apk'){
+        const b2=document.createElement('button');
+        b2.textContent='以文本查看';
+        b2.onclick=()=>showText(p,name,body,'other');
+        n.appendChild(b2);
+      }
+      return;
+    }
+    fail('未知类型');
+  }catch(e){
+    fail('预览失败：'+e.message);
+    if(/404/.test(String(e.message))&&await maybeDir(p)){
+      fail('它其实是目录，正在打开…');
+      setTimeout(()=>{closePreview();load(p);},600);
+    }
+  }
+}
+
+/* 文本 / 代码：读取 + 语法着色 */
+async function showText(p,name,body,kind){
+  const e=extOf(name);
+  if(kind==='office'||kind==='archive'||kind==='apk'){
+    body.innerHTML='<div class="pvempty">二进制文件，无法以文本显示</div>';
+    return;
+  }
+  const sz=sizeOf(p)||S.items.find(x=>x.name===(p.split('/').pop()||''))?.size||0;
+  if(sz>MAX_TEXT){
+    body.innerHTML='<div class="pvempty">文件较大（'+fmtSize(sz)+
+      '），为避免卡死不做文本预览，请下载后查看。</div>';
+    note('文本 · 已跳过（超过 '+fmtSize(MAX_TEXT)+'）');
+    return;
+  }
+  body.innerHTML='<div class="pvempty">'+SPIN+'</div>';
+  try{
+    const r=await call('GET','/api/text-file?path='+encodeURIComponent(p));
+    if(!r.ok){body.innerHTML='<div class="pvempty">读取失败 HTTP '+r.status+'</div>';return;}
+    const txt=await r.text();
+    // 超大内容不着色、只显示前 20 万字符，避免 DOM 卡死
+    const HARD=200000;
+    const shown=txt.length>HARD?txt.slice(0,HARD):txt;
+    const pre=document.createElement('pre');
+    pre.textContent=shown;
+    if(txt.length<=HARD)pre.innerHTML=highlight(shown,e);
+    body.innerHTML='';
+    body.appendChild(pre);
+    let extra='';
+    if(e==='sh'||e==='bash'){
+      extra=' · <b>MT 远程接口不提供远程执行能力</b>，可在手机 MT 中长按该文件运行';
+    }
+    note('文本 · '+txt.length+' 字符'+(txt.length>HARD?'（仅显示前 '+HARD+'）':'')+extra);
+  }catch(err){
+    body.innerHTML='<div class="pvempty">'+esc(err.message)+'</div>';
+  }
+}
+
+/* 轻量语法着色：单次扫描，先转义再包标签，避免嵌套破坏 */
+const KW={
+  sh:['if','then','else','fi','for','while','do','done','case','esac','function','return',
+      'export','local','echo','cd','exit','set'],
+  py:['def','class','import','from','return','if','elif','else','for','while','try','except',
+      'finally','with','as','lambda','None','True','False','and','or','not','in','is','pass','yield'],
+  js:['function','const','let','var','if','else','for','while','return','class','new','this',
+      'import','export','from','async','await','try','catch','finally','typeof','null','undefined','true','false'],
+  json:['true','false','null'],
+  java:['public','private','protected','class','interface','extends','implements','static','final',
+      'void','int','String','new','return','if','else','for','while','try','catch','import','package'],
+  smali:['const','move','invoke','return','if','goto','new','instance','iget','iput','sget','sput','class','super'],
+  xml:['xml','version','encoding'],
+  html:['html','head','body','div','script','style','title','meta','link'],
+  sql:['select','from','where','insert','into','update','delete','create','table','and','or','join'],
+};
+const SLASH_EXT=['js','mjs','ts','tsx','jsx','java','kt','c','h','cpp','hpp','cs','go','rs','php','swift','css','json'];
+function highlight(src,ext){
+  const s=esc(src);
+  const kw=KW[ext]||KW[String(ext).replace(/\d+$/,'')]||[];
+  const parts=[];
+  if(ext==='sh'||ext==='bash'||ext==='py'||ext==='yml'||ext==='yaml'||ext==='conf'||ext==='ini'||ext==='prop'||ext==='properties'||ext==='hosts'||ext==='list'||ext==='cfg'||ext==='toml'||ext==='gitignore')
+    parts.push('(#[^\\n]*)');
+  if(SLASH_EXT.indexOf(ext)>=0)parts.push('(//[^\\n]*)');
+  parts.push('(/\\*[\\s\\S]*?\\*/)');
+  parts.push('(&quot;[^&\\n]*?&quot;|&#39;[^\\n]*?&#39;)');
+  parts.push('(\\b\\d+(?:\\.\\d+)?\\b)');
+  if(kw.length)parts.push('(\\b(?:'+kw.join('|')+')\\b)');
+  const re=new RegExp(parts.join('|'),'g');
+  return s.replace(re,(m,hash,slash,block,str,num,kwm)=>{
+    if(hash!=null)return '<span class="cm">'+m+'</span>';
+    if(slash!=null)return '<span class="cm">'+m+'</span>';
+    if(block!=null)return '<span class="cm">'+m+'</span>';
+    if(str!=null)return '<span class="str">'+m+'</span>';
+    if(num!=null)return '<span class="num">'+m+'</span>';
+    if(kwm!=null)return '<span class="kw">'+m+'</span>';
+    return m;
+  });
+}
+
+/* ============ 新建 / 重命名 / 删除 ============ */
+function modal(title,html,opts){
+  opts=opts||{};
+  const onOk=(typeof opts==='function')?opts:opts.onOk;
+  const okText=('ok' in opts)?opts.ok:'确定';
+  const cancelText=('cancel' in opts)?opts.cancel:'取消';
+  const m=document.createElement('div');m.className='mask';m.id='mask';
+  let foot='<div class="mfoot">';
+  if(cancelText)foot+='<button class="btn g" data-x="cancel">'+esc(cancelText)+'</button>';
+  if(okText)foot+='<button class="btn" data-x="ok">'+esc(okText)+'</button>';
+  foot+='</div>';
+  m.innerHTML='<div class="modal"><h3>'+esc(title)+'</h3>'+html+foot+'</div>';
+  document.body.appendChild(m);
+  const close=()=>m.remove();
+  const cb=m.querySelector('[data-x="cancel"]'),ob=m.querySelector('[data-x="ok"]');
+  if(cb)cb.onclick=()=>{if(opts.onCancel)opts.onCancel();close();};
+  if(ob)ob.onclick=()=>{
+    if(!onOk){close();return;}
+    let r;
+    try{r=onOk();}catch(e){console.error(e);toast('操作出错：'+e.message);return;}
+    if(r!==false)close();
+  };
+  m.onclick=e=>{if(e.target===m){if(opts.onCancel)opts.onCancel();close();}};
+  m.q=sel=>m.querySelector(sel);          // 弹窗内局部查询，避免 id 串台
+  return m;
+}
+function mkdir(){
+  const m=modal('新建文件夹','<label>名称</label><input id="mv" placeholder="例如 backup">',()=>{
+    const v=(m.q('#mv')||{}).value.trim();if(!v)return;
+    apiJson('POST','/api/file-create',{json:{targetPath:S.path,name:v,isDirectory:true}})
+      .then(()=>{toast('已创建');load(S.path);}).catch(e=>toast('失败：'+e.message));});
+}
+function rename(p,name){
+  modal('重命名','<label>新名称</label><input id="mv" value="'+esc(name)+'">',()=>{
+    const v=$('mv').value.trim();if(!v||v===name)return;
+    apiJson('POST','/api/file-rename?path='+encodeURIComponent(p)+'&newName='+encodeURIComponent(v))
+      .then(()=>{toast('已重命名');load(S.path);}).catch(e=>toast('失败：'+e.message));});
+}
+async function doDelete(p,name,isDir){
+  const base=S.path;
+  const item={itemPath:p,name:name,isFile:!isDir};   // 目录必须标 isFile:false
+  const cands=[
+    ['POST','/api/file-transfer',{basePath:base,items:[item],moveToRecycleBin:false}],
+    ['POST','/api/file-transfer',{basePath:base,items:[item]}],
+    ['POST','/api/file-transfer',{operation:'delete',targetPath:base,
+      entries:[{path:p,name:name}],moveToRecycleBin:false}],
+    ['POST','/api/file-transfer',{operation:'delete',basePath:base,paths:[p]}],
+    ['DELETE','/api/file-transfer?path='+encodeURIComponent(p),null],
+  ];
+  const errs=[];
+  for(const [m,u,b] of cands){
+    try{ await apiJson(m,u,b?{json:b}:{}); return true; }
+    catch(e){ errs.push(m+' '+String(e.message).slice(0,60)); }
+  }
+  throw new Error(errs.join(' ｜ '));
+}
+function remove(p,name,isDir){
+  modal('删除','<div class="tip">确定删除「'+esc(name)+'」？此操作不可恢复。</div>',()=>{
+    toast('正在删除…');
+    doDelete(p,name,isDir).then(()=>{toast('已删除');load(S.path);})
+      .catch(e=>{
+        modal('删除失败','<div class="tip">已尝试 4 种请求格式均被拒绝。</div>'+
+          '<pre style="white-space:pre-wrap;font-size:11px;background:var(--panel2);'+
+          'border:1px solid var(--line);border-radius:8px;padding:10px">'+esc(e.message)+'</pre>',
+          {ok:'知道了',cancel:null});
+      });
+  });
+}
+
+/* ============ 上传 ============ */
+/* 协议严格按 MT 前端源码还原：
+   1) session 的 entries.path 是【相对 targetPath】的路径，不是绝对路径
+   2) entries 必须包含各级父目录条目（type:"directory", size:-1, time:0）
+   3) time 用毫秒（原始 lastModified），不是秒
+   4) 上传顺序由服务端 nextUploadPath 驱动，不是客户端自己遍历     */
+
+function Kd(n){                       // 同源码：路径归一化并过滤非法
+  if(typeof n!=='string')return '';
+  let e=n.replace(/\\/g,'/');
+  while(e.startsWith('./'))e=e.slice(2);
+  while(e.startsWith('/'))e=e.slice(1);
+  while(e.endsWith('/')&&e.length>1)e=e.slice(0,-1);
+  return (!e||e==='.'||e.split('/').some(i=>!i||i==='.'||i==='..'))?'':e;
+}
+function ancestorsOf(p,hasSlash){     // 同源码 a7()
+  const parts=p.split('/'),out=[];
+  for(let i=0;i<parts.length-1;i++)
+    out.push({path:parts.slice(0,i+1).join('/'),type:'directory',
+      size:-1,time:0,topLevel:(i===0&&!!hasSlash),file:null});
+  return out;
+}
+function buildEntries(files){         // 同源码 vm() + Pg()
+  const raw=[];
+  for(const f of files){
+    const p=Kd((f.webkitRelativePath)||f.name||'');
+    if(!p)continue;
+    const hasSlash=p.indexOf('/')>=0;
+    for(const a of ancestorsOf(p,hasSlash))raw.push(a);
+    raw.push({path:p,type:'file',
+      size:Math.max(Number(f.size)||0,0),
+      time:Math.max(Number(f.lastModified)||0,0),   // 毫秒
+      topLevel:!hasSlash,file:f});
+  }
+  const map=new Map();
+  for(const e of raw)if(!map.has(e.path))map.set(e.path,e);
+  return [...map.values()];
+}
+
+async function upload(list){
+  const files=[...list].filter(f=>f&&f.size!=null);
+  if(!files.length)return;
+  const base=S.path;
+  const entries=buildEntries(files);
+  if(!entries.length){toast('没有可上传的文件');return;}
+  const fileMap=new Map();
+  entries.forEach(e=>{if(e.type==='file'&&e.file)fileMap.set(e.path,e.file);});
+  const total=fileMap.size;
+
+  // 进度弹窗
+  const m=modal('上传中','<div class="tip" id="upTip">准备…</div>'+
+    '<div style="height:6px;background:var(--panel2);border-radius:999px;overflow:hidden;margin-top:8px">'+
+    '<div id="upBar" style="height:100%;width:0;background:var(--brand);transition:width .2s"></div></div>',
+    {ok:null,cancel:'后台继续'});
+  const setTip=t=>{const e=m.q('#upTip');if(e)e.textContent=t;};
+  const setBar=(d,t)=>{const e=m.q('#upBar');if(e)e.style.width=(t?Math.round(d/t*100):0)+'%';};
+
+  try{
+    const se=await apiJson('POST','/api/file-upload-session',{json:{
+      targetPath:base,
+      entries:entries.map(e=>({path:e.path,type:e.type,size:e.size,time:e.time,topLevel:e.topLevel}))
+    }});
+    const taskId=se.taskId||se.id;
+    if(!taskId)throw new Error('未返回 taskId');
+
+    setTip('初始化任务…');
+    await apiJson('POST','/api/file-upload-prepare?taskId='+encodeURIComponent(taskId));
+
+    let sent=0,done=false,guard=0;
+    const maxGuard=total*6+30;
+    while(!done&&guard++<maxGuard){
+      const st=await apiJson('GET','/api/file-upload-session?taskId='+encodeURIComponent(taskId));
+      if(st&&st.done){done=true;break;}
+      const p=(st&&st.nextUploadPath)||'';
+      if(!p){
+        const r=await apiJson('POST','/api/file-upload-complete?taskId='+encodeURIComponent(taskId));
+        if(r&&r.done){done=true;break;}
+        continue;
+      }
+      const b=await apiJson('POST','/api/file-upload-begin?taskId='+
+        encodeURIComponent(taskId)+'&path='+encodeURIComponent(p));
+      if(!b||b.resumeAction==='restart_begin'||b.armedPath!==p||!b.armToken)continue;
+      const f=fileMap.get(p);
+      if(!f)throw new Error('上传文件缺失：'+p);
+      setTip('上传 '+p+'（'+(sent+1)+'/'+total+'）');
+      const ch='UPLOAD:v1:'+await sha256B64([taskId,p,b.armToken,f.size].join('\n'));
+      await apiJson('POST','/api/file-upload-content?taskId='+encodeURIComponent(taskId)+
+        '&path='+encodeURIComponent(p)+'&armToken='+encodeURIComponent(b.armToken),
+        {body:f,headers:{'Content-Type':'application/octet-stream'},contentHash:ch});
+      sent++;setBar(sent,total);
+    }
+    if(!done)await apiJson('POST','/api/file-upload-complete?taskId='+encodeURIComponent(taskId));
+    m.remove();
+    toast('上传完成：'+sent+' 个文件');
+    load(S.path);
+  }catch(e){
+    // 回退：不依赖服务端调度，直接按自己的列表逐个推
+    try{
+      setTip('主流程失败，改用兼容模式…');
+      let n=0;
+      for(const [p,f] of fileMap){
+        const b=await apiJson('POST','/api/file-upload-begin?taskId='+
+          encodeURIComponent('fallback')+'&path='+encodeURIComponent(p)).catch(()=>null);
+        const arm=(b&&b.armToken)||'';
+        const ch='UPLOAD:v1:'+await sha256B64(['fallback',p,arm,f.size].join('\n'));
+        await apiJson('POST','/api/file-upload-content?taskId='+encodeURIComponent('fallback')+
+          '&path='+encodeURIComponent(p)+'&armToken='+encodeURIComponent(arm),
+          {body:f,headers:{'Content-Type':'application/octet-stream'},contentHash:ch});
+        n++;setBar(n,total);
+      }
+      m.remove();toast('上传完成（兼容模式）：'+n+' 个');load(S.path);
+    }catch(e2){
+      m.remove();
+      modal('上传失败','<div class="tip">主流程：'+esc(String(e.message))+'</div>'+
+        '<div class="tip">兼容模式：'+esc(String(e2.message))+'</div>'+
+        '<div class="tip">可在电脑打开 MT 原网页，F12 → Network 上传一个文件，'+
+        '把 file-upload-session 的 Request Payload 发我，即可精确适配。</div>',
+        {ok:'知道了',cancel:null});
+    }
+  }
+}
+
+/* ============ 编辑 ============ */
+async function edit(p,name){
+  const sz=sizeOf(p);
+  if(sz>MAX_TEXT){
+    modal('文件过大','<div class="tip">「'+esc(name)+'」约 '+fmtSize(sz)+
+      '，超过 '+fmtSize(MAX_TEXT)+'，在线编辑可能导致页面卡死，已取消。</div>'+
+      '<div class="tip">如需修改，请下载后用电脑上的编辑器处理再上传。</div>',
+      {ok:'知道了',cancel:null});
+    return;
+  }
+  showSpinner('正在读取…');
+  try{
+    const tq='/api/text-file?path='+encodeURIComponent(p);
+    const r=await call('GET',tq);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const tok=r.headers.get('X-MT-Text-Parameters-Token')||'';
+    const txt=await r.text();
+    hideStatus();
+    const m=modal('编辑 '+name,'<textarea id="editor">'+esc(txt)+'</textarea>',()=>{
+      const v=m.q('#editor').value,lineBreak='LF';
+      const blob=new Blob([v],{type:'text/plain;charset=UTF-8'});
+      (async()=>{
+        const h=await sha256B64(blob);
+        const ch='TEXT_SAVE:v1:'+await sha256B64([p,lineBreak,tok,'',blob.size,h].join('\n'));
+        await apiJson('PUT','/api/text-file?path='+encodeURIComponent(p)+'&lineBreak='+lineBreak,
+          {body:blob,headers:{'Content-Type':'text/plain;charset=UTF-8',
+            'X-MT-Text-Parameters-Token':tok},contentHash:ch});
+        m.remove();toast('已保存');load(S.path);
+      })().catch(e=>toast('保存失败：'+e.message));
+      return false;
+    });
+    return m;
+  }catch(e){status('<h3>读取失败</h3><div>'+esc(e.message)+'</div>');}
+}
+
+/* ============ 跳转 ============ */
+const COMMON=['/','/sdcard','/sdcard/Download','/sdcard/DCIM','/sdcard/Pictures',
+  '/sdcard/Music','/sdcard/Movies','/sdcard/Documents','/storage/emulated/0',
+  '/data','/data/local/tmp','/mnt','/system'];
+function normPath(p){
+  if(!p)return '/';
+  let s=String(p).trim().replace(/\\/g,'/');
+  if(!s.startsWith('/'))s='/'+s;
+  s=s.replace(/\/{2,}/g,'/');
+  // 解析 . 与 ..
+  const out=[];
+  for(const seg of s.split('/')){
+    if(seg===''||seg==='.')continue;
+    if(seg==='..'){out.pop();continue;}
+    out.push(seg);
+  }
+  return '/'+out.join('/');
+}
+function jump(){
+  const m=modal('跳转到指定路径',
+    '<label>路径</label><input id="jp" value="'+esc(S.path)+'" placeholder="/sdcard/Download">'+
+    '<label>常用目录</label><div class="row" id="jc" style="gap:6px"></div>',
+    {ok:'前往',cancel:'取消',onOk:()=>{
+      const v=((m.q('#jp'))||{}).value||'';
+      if(!v.trim()){toast('请输入路径');return false;}
+      load(normPath(v));
+    }});
+  const box=m.q('#jc');
+  if(box)COMMON.forEach(p=>{
+    const b=document.createElement('button');
+    b.className='btn g';b.style.padding='5px 10px';b.style.fontSize='12px';
+    b.textContent=p;
+    b.onclick=()=>{const i=$('jp');if(i)i.value=p;};
+    box.appendChild(b);
+  });
+  setTimeout(()=>{const i=m.q('#jp');if(i){i.focus();i.select();}},80);
+  return m;
+}
+function renderCrumb(){
+  const parts=S.path.split('/').filter(Boolean);
+  let h='<span data-i="-1">根目录</span>';
+  parts.forEach((p,i)=>{h+='<i>/</i><span data-i="'+i+'">'+esc(p)+'</span>';});
+  crumb.innerHTML=h;
+  crumb.querySelectorAll('span').forEach(sp=>{sp.onclick=()=>{
+    const i=+sp.dataset.i;load(i<0?'/':'/'+parts.slice(0,i+1).join('/'));};});
+}
+
+/* ============ 帮助 ============ */
+function help(){
+  modal('功能说明与限制',
+    '<p class="tip"><b>已支持</b></p>'+
+    '<ul style="font-size:12px;color:var(--sub);margin:4px 0 10px;padding-left:19px">'+
+    '<li>图片 / 视频 / 音频：直接预览、播放、缩放</li>'+
+    '<li>PDF：浏览器内置阅读器渲染</li>'+
+    '<li>HTML：可切换「渲染预览」与「源码」。MT 的响应带 CSP 头，'+
+    '直接 iframe 会被浏览器拒绝，这里改为取回字节后用 srcdoc 渲染，可正常显示</li>'+
+    '<li>文本 / 代码：带语法着色查看，并可在线编辑保存</li>'+
+    '<li>APK：显示真实图标（取自 MT 的 file-icon 接口）</li>'+
+    '</ul>'+
+    '<label>为什么 .sh 不能执行？</label>'+
+    '<p class="tip">MT 远程管理的 HTTP 接口<b>没有提供任何执行/终端接口</b>'+
+    '（全部 22 个接口中不含 run/exec/shell/terminal）。这是服务端能力限制，'+
+    '不是本页缺陷。可查看、编辑、下载 .sh，然后在手机 MT 管理器中长按该文件运行。</p>'+
+    '<label>为什么 Office 文档打不开？</label>'+
+    '<p class="tip">浏览器无法渲染 doc/xls/ppt，只能下载后用 WPS、Office 等应用打开。'+
+    'PDF 例外，浏览器可直接渲染。</p>'+
+    '<label>目录/文件怎么识别的？</label>'+
+    '<p class="tip">完全自动，无需手动切换。优先采用服务端返回的 <code>isFile</code> '+
+    '字段，其次 <code>typeIcon</code>（取值只有 folder / file），都缺失时才按名称、'+
+    '扩展名、大小等推断。若推断结果不可靠，顶部会提示，点「查字段」可看服务端原始返回。</p>',
+    {ok:'知道了',cancel:null});
+}
+
+/* ============ 诊断 ============ */
+async function probe(method,tq,opt){
+  const t0=Date.now();
+  try{
+    const r=await call(method,tq,opt);
+    const txt=await r.text();
+    return {status:r.status,ms:Date.now()-t0,ct:r.headers.get('content-type')||'',body:txt.slice(0,220)};
+  }catch(e){return {status:'ERR',ms:Date.now()-t0,ct:'',body:String(e.message)};}
+}
+async function runDiag(targetPath){
+  let p=targetPath;
+  if(!p){
+    const f=S.items.find(x=>!x.isDir);
+    if(!f){toast('当前目录没有文件可供诊断');return;}
+    p=fullPath(f);
+  }
+  const name=p.split('/').filter(Boolean).pop()||p;
+  const m=modal('诊断','<div class="tip">正在对 <b>'+esc(name)+'</b> 逐步探测…</div>'+
+    '<pre id="dg" style="white-space:pre-wrap;word-break:break-all;font-size:11px;line-height:1.5;'+
+    'background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px"></pre>'+
+    '<div class="mfoot"><button class="btn g" id="dgCopy">复制结果</button></div>',
+    {ok:'关闭',cancel:null});
+  const out=[];
+  const put=s=>{out.push(s);const el=m.q('#dg');if(el)el.textContent=out.join('\n');};
+  put('目标: '+p);
+  put('模式: '+S.mode+'  基址: '+apiUrl('/api'));
+  put('');
+  put('[0] 列表原始字段（用于适配目录判定）');
+  try{
+    const raw=await apiJson('GET',target(S.path));
+    const arr=pickList(raw);
+    put('    外层字段: '+(Object.keys(raw||{}).join(', ')||'(数组)'));
+    if(arr.length){
+      const o=arr[0];
+      put('    条目字段: '+Object.keys(o).join(', '));
+      put('    原始 JSON: '+JSON.stringify(o).slice(0,300));
+      const it=extract(raw)[0];
+      put('    判定结果: '+((it&&it.isDir)?'目录':'文件')+'（依据：'+DIR_HINT+'）');
+    }else put('    列表为空');
+  }catch(e){put('    → 失败 '+String(e.message).slice(0,120));}
+  put('');
+  put('[1] POST /api/auth/content-ticket {path,disposition:"attachment"}');
+  const r1=await probe('POST','/api/auth/content-ticket',{json:{path:p,disposition:'attachment'}});
+  put('    → '+r1.status+' '+r1.ms+'ms  '+r1.body);
+  let tk='';
+  try{const j=JSON.parse(r1.body);tk=j&&(j.ticket||j.token||j.value||j.ticketId)||'';}catch(e){}
+  put('    解析出 ticket: '+(tk?('有 ('+tk.slice(0,24)+'…)'):'无'));
+  put('');
+  if(tk){
+    const u='/api/file-content?path='+encodeURIComponent(p)+
+      '&disposition=attachment&ticket='+encodeURIComponent(tk);
+    const r2=await probe('GET',u);
+    put('[2] GET 带票据 '+u.slice(0,100));
+    put('    → '+r2.status+' '+r2.ms+'ms  ct='+r2.ct);
+  }else put('[2] 跳过（无票据）');
+  put('');
+  const r3=await probe('GET','/api/file-content?path='+encodeURIComponent(p)+'&disposition=inline');
+  put('[3] GET 无票据(带签名头, inline)');
+  put('    → '+r3.status+' '+r3.ms+'ms  ct='+r3.ct+'  '+r3.body.slice(0,120));
+  put('');
+  const r4=await probe('GET','/api/files?path='+encodeURIComponent(S.path));
+  put('[4] GET /api/files（对照）');
+  put('    → '+r4.status+' '+r4.ms+'ms');
+  put('');
+  const r5=await probe('GET','/api/file-icon?path='+encodeURIComponent(p));
+  put('[5] GET /api/file-icon');
+  put('    → '+r5.status+' '+r5.ms+'ms  ct='+r5.ct);
+  const cp=m.q('#dgCopy');
+  if(cp)cp.onclick=async()=>{
+    const text=out.join('\n');
+    try{await navigator.clipboard.writeText(text);toast('已复制');}
+    catch(e){
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');toast('已复制');}
+      catch(e2){toast('复制失败，请手动选择文本');}
+      ta.remove();
+    }
+  };
+}
+
+/* ============ 历史 ============ */
+function saveHist(){
+  let h=[];try{h=JSON.parse(localStorage.getItem('mt_hist')||'[]');}catch(e){}
+  const a=S.host+':'+S.port;
+  h=[a].concat(h.filter(x=>x!==a)).slice(0,5);
+  localStorage.setItem('mt_hist',JSON.stringify(h));renderHist();
+}
+function renderHist(){
+  let h=[];try{h=JSON.parse(localStorage.getItem('mt_hist')||'[]');}catch(e){}
+  if(S.mode==='same'||!h.length){hint.innerHTML='';return;}
+  hint.innerHTML='最近：'+h.map(a=>'<span class="ch" data-a="'+esc(a)+'" '+
+    'style="cursor:pointer;color:var(--brand);margin-right:9px">'+esc(a)+'</span>').join('');
+  hint.querySelectorAll('.ch').forEach(c=>c.onclick=()=>{
+    const m=c.dataset.a.match(/^([^:]+):?(\d*)/);
+    $('host').value=m[1];$('port').value=m[2]||'8080';connectFromInput();});
+}
+function failCard(detail){
+  return '<div class="card"><b>排查清单</b><ol>'+
+    '<li>手机与电脑连<b>同一个 Wi-Fi</b></li>'+
+    '<li>MT 管理器 → 远程管理 → <b>HTTP</b> → 已点「启动」</li>'+
+    '<li>填的是 MT 页面上显示的 IP 和端口</li>'+
+    '<li>电脑防火墙没拦该端口</li>'+
+    '</ol>'+(detail?'<div style="margin-top:8px">'+esc(detail)+'</div>':'')+'</div>';
+}
+
+/* ============ 事件 ============ */
+$('bGo').onclick=connectFromInput;
+['host','port'].forEach(id=>$(id).addEventListener('keydown',e=>{
+  if(e.key==='Enter')connectFromInput();}));
+$('bUp').onclick=()=>load(S.path.replace(/\/[^/]*$/,'')||'/');
+$('bJump').onclick=jump;
+$('bRefresh').onclick=()=>load(S.path);
+$('bMkdir').onclick=mkdir;
+$('bUpload').onclick=()=>$('files').click();
+$('files').onchange=e=>{upload(e.target.files);e.target.value='';};
+$('bHelp').onclick=help;
+$('bDiag').onclick=()=>{if(!S.identity){toast('请先连接');return;}runDiag();};
+$('bForget').onclick=()=>{clearId();toast('已清除本机配对身份，下次需重新输入配对码');};
+$('bTheme').onclick=()=>{
+  const n=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',n);localStorage.setItem('mt_theme',n);};
+['dragenter','dragover'].forEach(ev=>main.addEventListener(ev,e=>e.preventDefault()));
+main.addEventListener('drop',e=>{e.preventDefault();if(S.identity)upload(e.dataTransfer.files);});
+
+/* 兜底：任何未捕获异常都提示出来，不再静默失效 */
+window.addEventListener('error',e=>{
+  toast('出错了：'+String(e.message||'').slice(0,80));
+});
+window.addEventListener('unhandledrejection',e=>{
+  const r=e.reason;
+  toast('操作失败：'+String((r&&r.message)||r||'').slice(0,80));
+});
+
+const th=localStorage.getItem('mt_theme');
+if(th)document.documentElement.setAttribute('data-theme',th);
+let hh=[];try{hh=JSON.parse(localStorage.getItem('mt_hist')||'[]');}catch(e){}
+if(hh.length){const m=hh[0].match(/^([^:]+):?(\d*)/);
+  $('host').value=m?m[1]:'';$('port').value=(m&&m[2])||'8080';}
+
+detect();
+</script>
+</body>
+</html>
